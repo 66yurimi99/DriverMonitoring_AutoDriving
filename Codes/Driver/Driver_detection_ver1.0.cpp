@@ -16,9 +16,7 @@ int main() {
     }
 
     Mat frame;
-    Mat sub_frame;
     vector<dlib::rectangle> faces; // dlib의 rectangle을 사용하므로 std::vector로 변경
-    vector<dlib::full_object_detection> shapes; // dlib의 full_object_detection을 사용하므로 std::vector로 변경
 
     //Sleep에 관한 변수 선언
     clock_t start = 0;
