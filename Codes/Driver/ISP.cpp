@@ -8,10 +8,7 @@ ISP::~ISP() {
     cout << "Program end.." << endl;
 }
 
-
-
-// EAR을 계산하는 함수
-double ISP::calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]) {
+double ISP::calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]) { // EAR을 계산하는 함수
     // 왼쪽 눈의 좌표 추출
     std::vector<Point> leftEyePoints;
     for (int i = leftEye[0]; i < leftEye[(int)sizeof(leftEye) / sizeof(int) - 1]; i++) {
@@ -51,12 +48,12 @@ double ISP::calculateEar(const dlib::full_object_detection& shape, const int lef
     return (earLeft + earRight) / 2.0;
 }
 
-double ISP::calculateAngle(Point p1, Point p2) {
+double ISP::calculateAngle(Point p1, Point p2) { //두 점 각도계산
     double angle = atan2(p2.y - p1.y, p2.x - p1.x);
     return angle * 180. / CV_PI; //degree
 }
 
-double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6) {
+double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6) { // EAR을 계산하는 함수
 
     dlib::point p1_point = landmarks.part(p1);
     dlib::point p2_point = landmarks.part(p2);
@@ -70,4 +67,84 @@ double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1,
     double c = std::sqrt(std::pow(p1_point.x() - p4_point.x(), 2) + std::pow(p1_point.y() - p4_point.y(), 2));
 
     return (a + b) / (2.0 * c);
+}
+
+void ISP::initializeCamera(int i, VideoCapture& cap) //카메라 초기세팅
+{ 
+    cap.open(i);
+    if (!cap.isOpened()) {
+        cerr << "Error: 카메라를 열 수 없습니다." << endl;
+        exit(1);
+    }
+}
+
+void ISP::initializeDlib(dlib::frontal_face_detector& detector, dlib::shape_predictor& landmark_predictor) //dlib - face_detector, face_landmarks 설정
+{ 
+    detector = dlib::get_frontal_face_detector();
+    dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> landmark_predictor;
+}
+
+void ISP::calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::high_resolution_clock>& start_fps) //초당 프레임 수 계산
+{ 
+
+    auto end_fps = chrono::high_resolution_clock::now();
+    double fps = frameCount / chrono::duration<double>(end_fps - start_fps).count();
+    cv::putText(frame, "FPS: " + to_string(int(fps)), Point(10, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 0), 2);
+    //start_fps = end_fps;;
+
+    frameCount++;
+}
+
+void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep, clock_t& start, clock_t& end) //EAR값 검출 및 졸음 여부 판단
+{
+    std::vector<dlib::rectangle> faces;
+    dlib::cv_image<dlib::bgr_pixel> dlibFrame(frame);
+
+    faces = detector(dlibFrame);
+
+    for (const auto& face : faces) {
+        dlib::draw_rectangle(dlibFrame, face, dlib::rgb_pixel(255, 0, 0));
+        dlib::full_object_detection landmarks = landmark_predictor(dlibFrame, face);
+
+        double leftEAR = eyeAspectRatio(landmarks, 36, 37, 38, 39, 40, 41);
+        double rightEAR = eyeAspectRatio(landmarks, 42, 43, 44, 45, 46, 47);
+
+        // 눈 랜드마크 그림
+        for (int i = 36; i < 48; i++) {
+            cv::Point point(landmarks.part(i).x(), landmarks.part(i).y());
+            cv::circle(frame, point, 2, Scalar(0, 0, 255), -1);
+        }
+        double ear = (leftEAR + rightEAR) / 2.0; //눈 수직:수평 비율
+
+        if (ear <= eyeAspectRatioThreshold) {
+            if (start == 0) {
+                start = clock();
+            }
+            else {
+                end = clock();
+                double sleeptime = (double)(end - start) / CLOCKS_PER_SEC;
+                string text = "Closed: " + to_string(sleeptime);
+                putText(frame, text, Point(50, 430), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+
+                if (sleeptime >= sleeptime_threshold) {
+                    sleep = true;
+                }
+            }
+        }
+        else {
+            start = 0;
+        }
+        if (sleep == true) putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2); // 수면 시
+        else putText(frame, "Good", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2); // 정상상태 시
+    }
+}
+
+int ISP::videotoframe(Mat& frame, VideoCapture& cap) // 영상 -> 이미지
+{
+    cap >> frame;
+    if (frame.empty()) {
+        cerr << "비디오 스트림이 종료되었습니다." << endl;
+        return 0;
+    }
+    return 1;
 }
