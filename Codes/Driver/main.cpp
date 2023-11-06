@@ -8,14 +8,17 @@ dlib::frontal_face_detector detector;
 dlib::shape_predictor landmark_predictor;
 int frameCount = 1;
 int camera_num = 0; //내장 및 첫번째 카메라
+HINTERNET hInternet, hConnect; // 인터넷 세션, 리소스 핸들
 
 int main() {
     _isp = new ISP();
     _isp->initializeCamera(camera_num, cap);
     _isp->initializeDlib(detector, landmark_predictor);
+    _isp->initalizeWininet(hInternet, hConnect);
     Mat frame;
     Mat dst; // image preprocessing
     bool sleep = false;
+    bool pre_sleep = false;
     bool found = true;
     clock_t start = 0;
     clock_t end = 0;
@@ -29,13 +32,16 @@ int main() {
         _isp->detectEyesAndSleep(frame, detector, landmark_predictor, sleep, start, end);
         _isp->calculateFPS(frame, frameCount, start_fps);
         _isp->preprocessing(frame, dst);
+        _isp->request_Wininet_Get(hInternet, hConnect, sleep, pre_sleep);
         cv::imshow(windowName, frame);
         cv::imshow(subwindowName, dst);
         if (waitKey(1) == 27) {
             break;
         }
     }
-
+    
+    InternetCloseHandle(hConnect);
+    InternetCloseHandle(hInternet);
     destroyAllWindows();
     delete _isp;
 

@@ -8,20 +8,20 @@ ISP::~ISP() {
     cout << "Program end.." << endl;
 }
 
-double ISP::calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]) { // EARÀ» °è»êÇÏ´Â ÇÔ¼ö
-    // ¿ÞÂÊ ´«ÀÇ ÁÂÇ¥ ÃßÃâ
+double ISP::calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]) { // EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½
     std::vector<Point> leftEyePoints;
     for (int i = leftEye[0]; i < leftEye[(int)sizeof(leftEye) / sizeof(int) - 1]; i++) {
         leftEyePoints.push_back(Point(shape.part(i).x(), shape.part(i).y()));
     }
 
-    // ¿À¸¥ÂÊ ´«ÀÇ ÁÂÇ¥ ÃßÃâ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½
     std::vector<Point> rightEyePoints;
     for (int i = rightEye[0]; i < rightEye[(int)sizeof(rightEye) / sizeof(int) - 1]; i++) {
         rightEyePoints.push_back(Point(shape.part(i).x(), shape.part(i).y()));
     }
 
-    // ´«ÀÇ ¼öÁ÷ ±æÀÌ °è»ê
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
     double verticalDistLeft1 = sqrt(pow(leftEyePoints[1].x - leftEyePoints[5].x, 2) + pow(leftEyePoints[1].y - leftEyePoints[5].y, 2));
     //norm(leftEyePoints[1] - leftEyePoints[5]);
     double verticalDistLeft2 = sqrt(pow(leftEyePoints[2].x - leftEyePoints[4].x, 2) + pow(leftEyePoints[2].y - leftEyePoints[4].y, 2));
@@ -34,26 +34,26 @@ double ISP::calculateEar(const dlib::full_object_detection& shape, const int lef
     //norm(rightEyePoints[2] - rightEyePoints[4]);
     double verticalDistRight = (verticalDistRight1 + verticalDistRight2);
 
-    // ´«ÀÇ ¼öÆò ±æÀÌ °è»ê
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
     double horizontalDistLeft = sqrt(pow(leftEyePoints[0].x - leftEyePoints[3].x, 2) + pow(leftEyePoints[0].y - leftEyePoints[3].y, 2));
     //norm(leftEyePoints[0] - leftEyePoints[3]);
     double horizontalDistRight = sqrt(pow(rightEyePoints[0].x - rightEyePoints[3].x, 2) + pow(rightEyePoints[0].y - rightEyePoints[3].y, 2));
     //norm(rightEyePoints[0] - rightEyePoints[3]);
 
-// EAR °è»ê
+// EAR ï¿½ï¿½ï¿½
     double earLeft = verticalDistLeft / (2.0 * horizontalDistLeft);
     double earRight = verticalDistRight / (2.0 * horizontalDistRight);
     //std::cout << "Left: " << earLeft << "== Right: " << earRight << endl;
-    // µÎ ´«ÀÇ EARÀ» Æò±ÕÇÏ¿© ¹ÝÈ¯
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½È¯
     return (earLeft + earRight) / 2.0;
 }
 
-double ISP::calculateAngle(Point p1, Point p2) { //µÎ Á¡ °¢µµ°è»ê
+double ISP::calculateAngle(Point p1, Point p2) { //ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     double angle = atan2(p2.y - p1.y, p2.x - p1.x);
     return angle * 180. / CV_PI; //degree
 }
 
-double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6) { // EARÀ» °è»êÇÏ´Â ÇÔ¼ö
+double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6) { // EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
 
     dlib::point p1_point = landmarks.part(p1);
     dlib::point p2_point = landmarks.part(p2);
@@ -69,22 +69,22 @@ double ISP::eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1,
     return (a + b) / (2.0 * c);
 }
 
-void ISP::initializeCamera(int i, VideoCapture& cap) //Ä«¸Þ¶ó ÃÊ±â¼¼ÆÃ
+void ISP::initializeCamera(int i, VideoCapture& cap) //Ä«ï¿½Þ¶ï¿½ ï¿½Ê±â¼¼ï¿½ï¿½
 { 
     cap.open(i);
     if (!cap.isOpened()) {
-        cerr << "Error: Ä«¸Þ¶ó¸¦ ¿­ ¼ö ¾ø½À´Ï´Ù." << endl;
+        cerr << "Error: Ä«ï¿½Þ¶ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½." << endl;
         exit(1);
     }
 }
 
-void ISP::initializeDlib(dlib::frontal_face_detector& detector, dlib::shape_predictor& landmark_predictor) //dlib - face_detector, face_landmarks ¼³Á¤
+void ISP::initializeDlib(dlib::frontal_face_detector& detector, dlib::shape_predictor& landmark_predictor) //dlib - face_detector, face_landmarks ï¿½ï¿½ï¿½ï¿½
 { 
     detector = dlib::get_frontal_face_detector();
     dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> landmark_predictor;
 }
 
-void ISP::calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::high_resolution_clock>& start_fps) //ÃÊ´ç ÇÁ·¹ÀÓ ¼ö °è»ê
+void ISP::calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::high_resolution_clock>& start_fps) //ï¿½Ê´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½
 { 
 
     auto end_fps = chrono::high_resolution_clock::now();
@@ -95,7 +95,7 @@ void ISP::calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::h
     frameCount++;
 }
 
-void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep,clock_t& start, clock_t& end) //EAR°ª °ËÃâ ¹× Á¹À½ ¿©ºÎ ÆÇ´Ü
+void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep,clock_t& start, clock_t& end) //EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ç´ï¿½
 {
     std::vector<dlib::rectangle> faces;
     dlib::cv_image<dlib::bgr_pixel> dlibFrame(frame);
@@ -126,12 +126,12 @@ void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, d
             double leftEAR = eyeAspectRatio(landmarks, 36, 37, 38, 39, 40, 41);
             double rightEAR = eyeAspectRatio(landmarks, 42, 43, 44, 45, 46, 47);
 
-            // ´« ·£µå¸¶Å© ±×¸²
+            // ï¿½ï¿½ ï¿½ï¿½ï¿½å¸¶Å© ï¿½×¸ï¿½
             for (int i = 36; i < 48; i++) {
                 cv::Point point(landmarks.part(i).x(), landmarks.part(i).y());
                 cv::circle(frame, point, 2, Scalar(0, 0, 255), -1);
             }
-            double ear = (leftEAR + rightEAR) / 2.0; //´« ¼öÁ÷:¼öÆò ºñÀ²
+            double ear = (leftEAR + rightEAR) / 2.0; //ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½:ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
             if (ear <= eyeAspectRatioThreshold) {
                 if (start == 0) {
@@ -151,17 +151,23 @@ void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, d
             else {
                 start = 0;
             }
-            if (sleep == true) putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2); // ¼ö¸é ½Ã
-            else putText(frame, "Good", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2); // Á¤»ó»óÅÂ ½Ã
+            if (sleep == true) {
+                putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2); // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
+                //http sleep=1
+            }
+            else {
+                putText(frame, "Good", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
+                //http sleep=0
+            }
         }
     }
 }
 
-int ISP::videotoframe(Mat& frame, VideoCapture& cap) // ¿µ»ó -> ÀÌ¹ÌÁö
+int ISP::videotoframe(Mat& frame, VideoCapture& cap) // ï¿½ï¿½ï¿½ï¿½ -> ï¿½Ì¹ï¿½ï¿½ï¿½
 {
     cap >> frame;
     if (frame.empty()) {
-        cerr << "ºñµð¿À ½ºÆ®¸²ÀÌ Á¾·áµÇ¾ú½À´Ï´Ù." << endl;
+        cerr << "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ï´ï¿½." << endl;
         return 0;
     }
     return 1;
@@ -172,3 +178,34 @@ void ISP::preprocessing(Mat& frame, Mat& dst) {
     cvtColor(frame, dst, COLOR_BGR2GRAY);
 }
 
+void ISP::initalizeWininet(HINTERNET& hInternet, HINTERNET& hConnect){
+    hInternet = InternetOpen(L"HTTP Example", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+    if (!hInternet) {
+        std::cerr << "InternetOpen failed." << std::endl;
+        exit(1);
+    }
+}
+
+void ISP::request_Wininet_Get(HINTERNET& hInternet, HINTERNET& hConnect, bool sleep, bool& pre_sleep){
+    if(sleep && !pre_sleep){
+        wstring url = DB_URL;
+        wstring query = SLEEP;
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    else if(!sleep && pre_sleep){
+        wstring url = DB_URL;
+        wstring query = GOOD;
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    pre_sleep = sleep;
+}
