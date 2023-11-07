@@ -2,8 +2,8 @@
 
 const String windowName = "Sleep Detection";
 const String subwindowName = "Preprocessing";
-const int log_var = 1.1; //log var 크기만큼 맵핑
-const float gamma_var = 2; //커질수록 어두워짐
+const int log_var = 2; //log var 크기만큼 맵핑
+const float gamma_var = 1.1; //커질수록 어두워짐
 ISP* _isp = nullptr;
 VideoCapture cap;
 dlib::frontal_face_detector detector;
@@ -44,15 +44,10 @@ int main() {
         _isp->calculateFPS(gamma_t, gammaframe, start_fps);
         _isp->detectEyesAndSleep(log_t, detector, landmark_predictor, sleep, start, end);
         _isp->calculateFPS(log_t, gammaframe, start_fps);
-        //_isp->preprocessing(frame, dst, dst_hsv);
         _isp->detectEyesAndSleep(frame, detector, landmark_predictor, sleep, start, end);
         _isp->calculateFPS(frame, frameCount, start_fps);
         
-        
-
         cv::imshow(windowName, frame);
-        //cv::imshow(subwindowName, dst);
-        //cv::imshow("inrange", dst_hsv);
         cv::imshow("gamma trans", gamma_t);
         cv::imshow("log trans", log_t);
         if (waitKey(1) == 27) {
