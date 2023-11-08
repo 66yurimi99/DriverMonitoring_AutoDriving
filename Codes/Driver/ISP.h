@@ -11,7 +11,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core.hpp>
 #include <vector>
-
+#include <windows.h> 
+#include <wininet.h> //windowë‚´ì¥ http ì „ì†¡ ë¼ì´ë¸ŒëŸ¬ë¦¬
 
 using namespace std;
 using namespace cv;
@@ -22,22 +23,25 @@ public:
     ISP();
     ~ISP();
 private:
-    const int leftEye[6] = { 41, 42, 43, 44, 45, 46 }; //¿Ş´« ·£µå¸¶Å© ¹øÈ£
-    const int rightEye[6] = { 36, 37, 38, 39, 40, 41 }; //¿À¸¥´« ·£µå¸¶Å© ¹øÈ£
-    const int nose[1] = { 30 }; //ÄÚ ·£µå¸¶Å© ¹øÈ£
-    const double eyeAspectRatioThreshold = 0.23; //´« °¨±è EAR ÀÓ°è°ª
-    const double sleeptime_threshold = 3; //°¨±è Áö¼Ó½Ã°£ ÀÓ°è°ª
-    const double notfound_threshold = 5; //¸øÃ£À» ¶§ Áö¼Ó½Ã°£ ÀÓ°è°ª
-public:
-    double calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]); // EARÀ» °è»êÇÏ´Â ÇÔ¼ö
-    double calculateAngle(Point p1, Point p2); //µÎ Á¡ °¢µµ°è»ê
-    double eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6); // EARÀ» °è»êÇÏ´Â ÇÔ¼ö
+    const int leftEye[6] = { 41, 42, 43, 44, 45, 46 }; //ï¿½Ş´ï¿½ ï¿½ï¿½ï¿½å¸¶Å© ï¿½ï¿½È£
+    const int rightEye[6] = { 36, 37, 38, 39, 40, 41 }; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½å¸¶Å© ï¿½ï¿½È£
+    const int nose[1] = { 30 }; //ï¿½ï¿½ ï¿½ï¿½ï¿½å¸¶Å© ï¿½ï¿½È£
+    const double eyeAspectRatioThreshold = 0.23; //ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ EAR ï¿½Ó°è°ª
+    const double sleeptime_threshold = 3; //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ó½Ã°ï¿½ ï¿½Ó°è°ª
+    const double notfound_threshold = 5; //ï¿½ï¿½Ã£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ó½Ã°ï¿½ ï¿½Ó°è°ª
+    double calculateEar(const dlib::full_object_detection& shape, const int leftEye[], const int rightEye[]); // EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
+    double calculateAngle(Point p1, Point p2); //ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    double eyeAspectRatio(const dlib::full_object_detection& landmarks, int p1, int p2, int p3, int p4, int p5, int p6); // EARï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
     
-    void initializeCamera(int i, VideoCapture& cap); //Ä«¸Ş¶ó ÃÊ±â¼³Á¤
-    void initializeDlib(dlib::frontal_face_detector& detector, dlib::shape_predictor& landmark_predictor); //dlib ÃÊ±â¼³Á¤
-    void calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::high_resolution_clock>& start_fps); //FPS °è»ê
-    void detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep, clock_t& start, clock_t& end); //EAR°ª °è»ê ¹× Á¹À½¿©ºÎ ÆÇ´Ü
-    int videotoframe(Mat& frame, VideoCapture& cap); //¿µ»ó -> ÀÌ¹ÌÁö
-    void preprocessing(Mat& frame, Mat& dst); //preprocessing input image
-
+public:
+    void initializeCamera(int i, VideoCapture& cap); //Ä«ï¿½Ş¶ï¿½ ï¿½Ê±â¼³ï¿½ï¿½
+    void initializeDlib(dlib::frontal_face_detector& detector, dlib::shape_predictor& landmark_predictor); //dlib ï¿½Ê±â¼³ï¿½ï¿½
+    void calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::high_resolution_clock>& start_fps); //FPS ï¿½ï¿½ï¿½
+    void detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep, clock_t& start, clock_t& end); //EARï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ç´ï¿½
+    int videotoframe(Mat& frame, VideoCapture& cap); //ï¿½ï¿½ï¿½ï¿½ -> ï¿½Ì¹ï¿½ï¿½ï¿½
+    void preprocessing(Mat& frame, Mat& dst, Mat& dst_hsv); //preprocessing input image
+    void gammatransform(Mat& frame, Mat& gamma_t, float gamma_var);
+    void logtransform(Mat& frame, Mat& log_t, int log_var);
+    void initalizeWininet(HINTERNET& hInternet, HINTERNET& hConnect); //http í†µì‹  ì´ˆê¸°í™”
+    void request_Wininet_Get(HINTERNET& hInternet, HINTERNET& hConnect, bool sleep, bool& pre_sleep); //wininet_get
 };

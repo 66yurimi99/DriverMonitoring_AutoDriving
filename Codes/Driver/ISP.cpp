@@ -167,8 +167,73 @@ int ISP::videotoframe(Mat& frame, VideoCapture& cap) // 영상 -> 이미지
     return 1;
 }
 
-void ISP::preprocessing(Mat& frame, Mat& dst) {
+void ISP::preprocessing(Mat& frame, Mat& dst, Mat& dst_hsv) {
     dst = frame.clone();
-    cvtColor(frame, dst, COLOR_BGR2GRAY);
+    //cvtColor(frame, dst, COLOR_BGR2GRAY);
+    cvtColor(frame, dst, COLOR_BGR2HSV);
+    const int H_Low = 0, S_Low = 0, V_Low = 0;
+    const int H_High = 40, S_High = 60, V_High = 160;
+    inRange(dst, (H_Low, S_Low, V_Low), (H_High, S_High, V_High), dst_hsv);
 }
 
+void ISP::gammatransform(Mat& frame, Mat& gamma_t, float gamma_var) {
+    const int a = 1;
+    for (size_t i = 0; i < frame.rows; i++) {
+        for (size_t j = 0; j < frame.cols; j++) {
+            //float pixel_value = frame.at<uchar>(i, j);
+            for (size_t c = 0; c < frame.channels(); c++) {
+                int idx = ((i * frame.cols) + j) * frame.channels() + c;
+                float val = pow(((float)frame.data[idx] / 255.), gamma_var) * 255;
+                gamma_t.data[idx] = (uchar)val;
+            }
+        }
+    }
+}
+
+void ISP::logtransform(Mat& frame, Mat& log_t, int log_var) {
+    for (size_t i = 0; i < frame.rows; i++) {
+        for (size_t j = 0; j < frame.cols; j++) {
+            for (size_t c = 0; c < frame.channels(); c++) {
+                int idx = ((i * frame.cols) + j) * frame.channels() + c;
+                float val = log_var * log(1.+(float)frame.data[idx])*(255./log(256));
+                log_t.data[idx] = (uchar)val;
+            }
+        }
+    }
+}
+
+void ISP::initalizeWininet(HINTERNET& hInternet, HINTERNET& hConnect) {
+    hInternet = InternetOpen(L"HTTP Example", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+    if (!hInternet) {
+        std::cerr << "InternetOpen failed." << std::endl;
+        exit(1);
+    }
+}
+
+void ISP::request_Wininet_Get(HINTERNET& hInternet, HINTERNET& hConnect, bool sleep, bool& pre_sleep) {
+    if (sleep && !pre_sleep) {
+        //wstring url = DB_URL;
+        //wstring query = SLEEP;
+        wstring url(L"http://54.175.8.12/flag.php");
+        wstring query(L"?sleep=1");
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    else if (!sleep && pre_sleep) {
+        //wstring url = DB_URL;
+        //wstring query = GOOD;
+        wstring url(L"http://54.175.8.12/flag.php");
+        wstring query(L"?sleep=0");
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    pre_sleep = sleep;
+}
