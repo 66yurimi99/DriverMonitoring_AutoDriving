@@ -5,26 +5,19 @@
 #include <string>
 #include <vector>
 
-/* Driver */
-#include <chrono>
+/* Car - Car Detection */
+#include <opencv2/core.hpp>
+#include <opencv2/dnn/dnn.hpp>
+#include <fstream>
 #include <math.h>
-#define _USE_MATH_DEFINES
 
 /* Car - Lane Detection */
+#include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
-
-/* Car - Car Detection */
-
-
-/* Driver - dlib */
-#include <dlib/image_processing.h>
-#include <dlib/image_processing/frontal_face_detector.h>
-#include <dlib/opencv.h>
-#include <opencv2/core.hpp>
 
 
 #ifdef _DEBUG
@@ -35,4 +28,4 @@
 
 using namespace std;
 using namespace cv;
-using namespace dlib;
+
