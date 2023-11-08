@@ -81,9 +81,8 @@ int main(int argc, char* argv[])
 		// 6. 방향 구하기
 		// 좌 / 직진 / 우
 
-
+    
 		//7. Put Text
-
 		bool flag = true;
 		PutText(img_result, flag, 0.0);
 
@@ -339,6 +338,7 @@ void LaneDetection(Mat& src, Mat& dst)
 
 //	구현할것
 double CalcDirection(Mat& img_draw);
+
 void PutText(Mat& draw, const bool isSleep, const double amount)
 {
 	String driving_mode = isSleep ? "Auto" : "Manual";
