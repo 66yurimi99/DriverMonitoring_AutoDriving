@@ -1,21 +1,5 @@
-#define _USE_MATH_DEFINES
-#include <math.h>
-#include <iostream>
-#include <opencv2/opencv.hpp>
-#include <dlib/opencv.h>
-#include <dlib/image_processing.h>
-#include <dlib/image_processing/frontal_face_detector.h>
-#include <chrono>
-#include <opencv2/videoio.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/core.hpp>
-#include <vector>
-
-
-using namespace std;
-using namespace cv;
-using namespace dlib;
+#pragma once
+#include "Common.h"
 
 class ISP {
 public:
