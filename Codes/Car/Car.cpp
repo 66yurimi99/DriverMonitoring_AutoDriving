@@ -1,13 +1,13 @@
-#include "Car.h"
+ï»¿#include "Car.h"
 
 AutoDriving::AutoDriving()
-{	
-	cout << "Start AutoDriving mode..." << endl;
+{
+    cout << "Start AutoDriving mode..." << endl;
 }
 
 AutoDriving::~AutoDriving()
 {
-	cout << "End AutoDriving mode..." << endl;
+    cout << "End AutoDriving mode..." << endl;
 }
 
 void AutoDriving::OnMouse(int event, int x, int y, int flags, void* userdata)
@@ -22,14 +22,14 @@ void AutoDriving::OnMouse(int event, int x, int y, int flags, void* userdata)
     if (event == EVENT_LBUTTONDOWN)
     {
         if (cnt < 4)
-        {   
-            // ¼±ÅÃÇÑ À§Ä¡¸¦ Á¡À¸·Î ±×·Á¼­ º¸¿©ÁÖ±â
+        {
+            // ì„ íƒí•œ ìœ„ì¹˜ë¥¼ ì ìœ¼ë¡œ ê·¸ë ¤ì„œ ë³´ì—¬ì£¼ê¸°
             srcPts[cnt++] = Point2f(x, y);
             circle(img_roi, Point(x, y), 5, Scalar(255, 0, 255), -1);
             imshow(windowname, img_roi);
             if (cnt == 4)
             {
-                // x ÁÂÇ¥ ¼³Á¤ : RoI »ç°¢Çü ³Êºñ°¡ Â÷¼± ³Êºñ¿Í ºñ·ÊÇÏµµ·Ï x ÁÂÇ¥°ª Á¶Á¤
+                // x ì¢Œí‘œ ì„¤ì • : RoI ì‚¬ê°í˜• ë„ˆë¹„ê°€ ì°¨ì„  ë„ˆë¹„ì™€ ë¹„ë¡€í•˜ë„ë¡ x ì¢Œí‘œê°’ ì¡°ì •
                 for (size_t i = 0; i < 4; i = i + 2)
                 {
                     int margin = (srcPts[i].x - srcPts[i + 1].x) * 0.2;
@@ -37,7 +37,7 @@ void AutoDriving::OnMouse(int event, int x, int y, int flags, void* userdata)
                     srcPts[i + 1].x += (-margin);
                 }
 
-                // y ÁÂÇ¥ ¼³Á¤ : RoI »ç°¢ÇüÀÇ À­º¯, ¾Æ·§º¯À» ÀÌ·ç´Â µÎ Á¡ÀÇ y ÁÂÇ¥¸¦ ÀÏÄ¡½ÃÅ°±â
+                // y ì¢Œí‘œ ì„¤ì • : RoI ì‚¬ê°í˜•ì˜ ìœ—ë³€, ì•„ëž«ë³€ì„ ì´ë£¨ëŠ” ë‘ ì ì˜ y ì¢Œí‘œë¥¼ ì¼ì¹˜ì‹œí‚¤ê¸°
                 srcPts[1].y = srcPts[0].y;
                 srcPts[3].y = srcPts[2].y;
                 ROISelect = true;
@@ -54,13 +54,13 @@ void AutoDriving::SetROI(Mat src, Point2f* srcPts, string windowname)
     UserData userdata = { img_roi, srcPts };
 
     putText(img_roi, "Click RoI Points", Point(img_roi.cols * 0.3, 60), 1, 4, Scalar(255, 255, 255), 5);
-    imshow(windowname, img_roi); // ROI ¼³Á¤À» À§ÇÑ È­¸é Ãâ·Â
+    imshow(windowname, img_roi); // ROI ì„¤ì •ì„ ìœ„í•œ í™”ë©´ ì¶œë ¥
 
-    //¸¶¿ì½º Å¬¸¯ ÀÌº¥Æ® ¹ß»ý ½Ã ÄÝ¹é ÇÔ¼ö(OnMouse) È£Ãâ
+    //ë§ˆìš°ìŠ¤ í´ë¦­ ì´ë²¤íŠ¸ ë°œìƒ ì‹œ ì½œë°± í•¨ìˆ˜(OnMouse) í˜¸ì¶œ
     setMouseCallback(windowname, OnMouse, &userdata);
 
     while (!ROISelect)
-    {   // 20ms °£°ÝÀ¸·Î RoI ÁöÁ¤ ¿©ºÎ È®ÀÎ
+    {   // 20ms ê°„ê²©ìœ¼ë¡œ RoI ì§€ì • ì—¬ë¶€ í™•ì¸
         waitKey(20);
     }
 
@@ -79,6 +79,7 @@ void AutoDriving::TransPersfective(Mat src, Mat& dst, Point2f srcPts[], Point2f 
 
     persfective = getPerspectiveTransform(srcPts, dstPts);
     warpPerspective(src, dst, persfective, size);
+    //imshow("Top view", dst);
 }
 
 void AutoDriving::ConvertColor(Mat src, Mat& dst)
@@ -112,16 +113,17 @@ void AutoDriving::RemoveNoise(Mat src, Mat& dst)
 
 void AutoDriving::PreprocessFrame(Mat src, Mat& dst)
 {
-    // 1) »ö»ó ¿µ¿ª º¯°æ
+    // 1) ìƒ‰ìƒ ì˜ì—­ ë³€ê²½
     ConvertColor(src, dst);
 
-    // 2) ³ëÀÌÁî Á¦°Å : Morphology Opening
+    // 2) ë…¸ì´ì¦ˆ ì œê±° : Morphology Opening
     RemoveNoise(src, dst);
+    imshow("remove noise", dst);
 }
 
 double AutoDriving::CalcDirection(Mat& img_draw)
 {
-	return 0.0;
+    return 0.0;
 }
 
 void AutoDriving::PutText(Mat& draw, const bool isSleep, const double amount)
@@ -137,10 +139,10 @@ void AutoDriving::PutText(Mat& draw, const bool isSleep, const double amount)
 
 void AutoDriving::LaneDetection(Mat& src, Mat& dst)
 {
-    vector<Rect> rectangles_left = DivideRoi(src, 0);
+    vector<Rect> rectangles_left = DivideRoi(src, src.cols,0);
     vector<Point2f> centroids_left = findCentroids(src, rectangles_left);
 
-    vector<Rect> rectangles_right = DivideRoi(src, 310);
+    vector<Rect> rectangles_right = DivideRoi(src, src.cols,1);
     vector<Point2f> centroids_right = findCentroids(src, rectangles_right);
 
     DrawLine(src, rectangles_left, centroids_left);
@@ -157,6 +159,7 @@ void AutoDriving::LaneDetection(Mat& src, Mat& dst)
 
     fillConvexPoly(img_fill, img_fill_point, 4, Scalar(255, 0, 0));
     dst = img_fill;
+    imshow("lane detect", dst);
 }
 
 void AutoDriving::DrawLine(Mat& image, const vector<Rect>& rectangles, const vector<Point2f>& centroids)
@@ -209,17 +212,33 @@ vector<Point2f> AutoDriving::findCentroids(const Mat& roi, const vector<Rect>& r
     return centroids;
 }
 
-vector<Rect> AutoDriving::DivideRoi(Mat src, int x)
+vector<Rect> AutoDriving::DivideRoi(Mat src, int x, int divide_flag)
 {
     vector<Rect> rectangles;
     int numRect = 10;
     int rectHeight = src.rows / numRect;
-    for (int i = 0; i < numRect; i++)
+    if (divide_flag == 0)
     {
-        int y1 = i * rectHeight;
-        int y2 = (i + 1) * rectHeight;
-        Rect rect(x, y1, 70, y2 - y1);
-        rectangles.push_back(rect);
+        for (int i = 0; i < numRect; i++)
+        {
+            int y1 = i * rectHeight;
+            int y2 = (i + 1) * rectHeight;
+            
+            Rect rect(0, y1, x/2, y2 - y1);
+            rectangles.push_back(rect);
+        }
     }
+    else if (divide_flag == 1)
+    {
+        for (int i = 0; i < numRect; i++)
+        {
+            int y1 = i * rectHeight;
+            int y2 = (i + 1) * rectHeight;
+
+            Rect rect(x / 2, y1, x / 2, y2 - y1);
+            rectangles.push_back(rect);
+        }
+    }
+
     return rectangles;
 }

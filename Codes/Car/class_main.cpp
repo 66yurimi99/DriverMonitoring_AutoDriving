@@ -7,10 +7,10 @@ const String window_capture_name4 = "4. Lane Detection";
 
 
 int main(int argc, char* argv[])
-{   
+{
     AutoDriving* _car = new AutoDriving();
 
-    VideoCapture video("lane_detect.mp4");   // INPUT : 도로주행 동영상
+    VideoCapture video("Line.mp4");   // INPUT : 도로주행 동영상
     if (!video.isOpened()) {
         cout << "video is not opened" << endl;
         return -1;         // ERROR : 동영상 파일 열기 실패
@@ -59,20 +59,10 @@ int main(int argc, char* argv[])
         // 6. 방향 구하기
         // 좌 / 직진 / 우
 
-        /*
-        7. Put Text
+        //7. Put Text
+        bool flag = true;
+        _car->PutText(img_result, flag, 0.0);
 
-        Mat img_result;
-        bool flag = true;
-        PutText(img_result, flag, 0.0);
-        */
-#if 0
-        bool flag = true;
-        if (flag)
-        {
-            putText(img_result, "Auto", Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
-        }
-#endif
         imshow(window_capture_name4, img_result);
         waitKey(1);
     }
