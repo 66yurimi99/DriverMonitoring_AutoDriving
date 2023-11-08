@@ -1,4 +1,5 @@
 ﻿#include "ISP.h"
+#include "Server.h"
 
 const String windowName = "Sleep Detection";
 const String subwindowName = "Preprocessing";
@@ -15,9 +16,10 @@ HINTERNET hInternet, hConnect; //인터넷 세션, 리소스 핸들
 
 int main() {
     _isp = new ISP();
+    _server = new Server();
     _isp->initializeCamera(camera_num, cap);
     _isp->initializeDlib(detector, landmark_predictor);
-    _isp->initalizeWininet(hInternet, hConnect);
+    _server->initalizeWininet(hInternet, hConnect);
     Mat frame;
     Mat dst; // image preprocessing
     Mat dst_hsv;
@@ -41,7 +43,7 @@ int main() {
         _isp->gammatransform(frame, gamma_t, gamma_var);
         _isp->detectEyesAndSleep(gamma_t, detector, landmark_predictor, sleep, start, end);
         _isp->calculateFPS(gamma_t, gammaframe, start_fps);
-        _isp->request_Wininet_Get(hInternet, hConnect, sleep, pre_sleep);
+        _server->request_Wininet_Get(hInternet, hConnect, sleep, pre_sleep);
         
         cv::imshow("gamma trans", gamma_t);
         if (waitKey(1) == 27) {
