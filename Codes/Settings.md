@@ -2,15 +2,14 @@
 [Intel] 엣지 AI SW 아카데미 2기 - 팀 프로젝트 : 운전자 상태 모니터링 및 자율주행 시스템
 
 ## Integrated Development Enviroment
-*   Driver Detection Part
+*   Driver's drowsiness Detection Part
     -  IDE: Visual Studio 2022
     -  Language: C++
     -  OS: Windows
     -  opencv
 *   Car Detection Part
-
-*   Lane Detection Part
-*   
+    -
+    -
 ## Installation
 ### Opencv
 <img src="https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/141535958/132d8fb1-f6c2-409f-b38d-1fa6e02f2984" width="640" height="480"/>
