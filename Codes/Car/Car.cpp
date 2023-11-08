@@ -1,16 +1,18 @@
 ﻿#include "Car.h"
 
-AutoDriving::AutoDriving()
+Car::Car()
 {
     cout << "Start AutoDriving mode..." << endl;
 }
 
-AutoDriving::~AutoDriving()
+Car::~Car()
 {
     cout << "End AutoDriving mode..." << endl;
 }
 
-void AutoDriving::OnMouse(int event, int x, int y, int flags, void* userdata)
+/*** 1. RoI 설정 : 마우스 클릭으로 RoI 사각형을 구성하는 네 점의 좌표 설정 (클릭 순서: 좌측 상단부터 시계 방향) ***/
+// 1-1. 마우스 클릭 이벤트에 대한 콜백 함수
+void Car::OnMouse(int event, int x, int y, int flags, void* userdata)
 {
     static int cnt = 0;
 
@@ -46,7 +48,8 @@ void AutoDriving::OnMouse(int event, int x, int y, int flags, void* userdata)
     }
 }
 
-void AutoDriving::SetROI(Mat src, Point2f* srcPts, string windowname)
+// 1-2. 첫번째 frame에서 마우스 클릭으로 ROI 영역 지정 (PUBLIC)
+void Car::SetROI(Mat src, Point2f* srcPts, string windowname)
 {
     namedWindow(windowname);
 
@@ -67,7 +70,10 @@ void AutoDriving::SetROI(Mat src, Point2f* srcPts, string windowname)
     destroyWindow(windowname);
 }
 
-void AutoDriving::TransPersfective(Mat src, Mat& dst, Point2f srcPts[], Point2f dstPts[], int width, int height)
+
+/*** 2. 시점 변경 : 투시 변환을 통한 Original View(3D) <-> Top View(2D) 상호 전환 ***/
+// 2-1. 시점 변경 (PUBLIC)
+void Car::TransPersfective(Mat src, Mat& dst, Point2f srcPts[], Point2f dstPts[], int width, int height)
 {
     Mat persfective;
 
@@ -79,10 +85,12 @@ void AutoDriving::TransPersfective(Mat src, Mat& dst, Point2f srcPts[], Point2f 
 
     persfective = getPerspectiveTransform(srcPts, dstPts);
     warpPerspective(src, dst, persfective, size);
-    //imshow("Top view", dst);
 }
 
-void AutoDriving::ConvertColor(Mat src, Mat& dst)
+
+/*** 3. 이미지 전처리 : 차선 검출이 용이하도록 이미지 변환 ***/
+// 3-1. 컬러 영역 변경 : RGB 3채널 -> HSV(노랑)+LAB(흰색) 1채널 이미지
+void Car::ConvertColor(Mat src, Mat& dst)
 {
     Mat img_hsv, img_lab;
     Mat img_yellow, img_white;
@@ -104,78 +112,84 @@ void AutoDriving::ConvertColor(Mat src, Mat& dst)
     bitwise_or(img_yellow, img_white, dst);
 }
 
-void AutoDriving::RemoveNoise(Mat src, Mat& dst)
+// 3-2. 노이즈 제거
+void Car::RemoveNoise(Mat src, Mat& dst)
 {
     // Morphology Opening (erosion -> dilation)
     erode(dst, dst, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1));
     dilate(dst, dst, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1));
 }
 
-void AutoDriving::PreprocessFrame(Mat src, Mat& dst)
+// 3-3. 이미지 전처리 함수 (PUBLIC)
+void Car::PreprocessFrame(Mat src, Mat& dst)
 {
     // 1) 색상 영역 변경
     ConvertColor(src, dst);
 
     // 2) 노이즈 제거 : Morphology Opening
     RemoveNoise(src, dst);
-    imshow("remove noise", dst);
 }
 
-double AutoDriving::CalcDirection(Mat& img_draw)
+
+/*** 4. 차선 검출 및 주행 방향 계산 ***/
+// 4-1. 주행 방향 계산
+// 4-1-1. x 좌표 평균 구하기
+double Car::GetAverage(vector<Point2f> centroids)
 {
-    return 0.0;
+	float sum_x = 0.0;
+	for (const Point2f& point : centroids) {
+		sum_x += point.x;
+	}
+
+	float average_x = sum_x / centroids.size();
+
+	return average_x;
+}
+// 4-1-2. 방향 계산
+double Car::CalcDirection(double left, double right)
+{
+	double diff = (prev_average_left - left) + (prev_average_right - right);
+
+	prev_average_left = left;
+	prev_average_right = right;
+
+	return diff;
 }
 
-void AutoDriving::PutText(Mat& draw, const bool isSleep, const double amount)
+// 4-2. 차선 검출
+// 4-2-1. RoI 영역을 좌우 2개로 분할
+vector<Rect> Car::DivideRoi(Mat src, int x, int divide_flag)
 {
-    String driving_mode = isSleep ? "Auto" : "Manual";
-    String direction;
-    if (amount < -5)	direction = "Left";
-    else if (amount < 5)	direction = "Straight";
-    else	direction = "Right";
-    putText(draw, driving_mode, Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
-    putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
-}
-
-void AutoDriving::LaneDetection(Mat& src, Mat& dst)
-{
-    vector<Rect> rectangles_left = DivideRoi(src, src.cols,0);
-    vector<Point2f> centroids_left = findCentroids(src, rectangles_left);
-
-    vector<Rect> rectangles_right = DivideRoi(src, src.cols,1);
-    vector<Point2f> centroids_right = findCentroids(src, rectangles_right);
-
-    DrawLine(src, rectangles_left, centroids_left);
-    DrawLine(src, rectangles_right, centroids_right);
-
-    Mat img_fill = Mat::zeros(src.size(), CV_8UC3);
-    Point img_fill_point[4]
+    vector<Rect> rectangles;
+    int numRect = 10;
+    int rectHeight = src.rows / numRect;
+    if (divide_flag == 0)
     {
-       Point(centroids_left.back()),
-       Point(centroids_left.front()),
-       Point(centroids_right.front()),
-       Point(centroids_right.back())
-    };
-
-    fillConvexPoly(img_fill, img_fill_point, 4, Scalar(255, 0, 0));
-    dst = img_fill;
-    imshow("lane detect", dst);
-}
-
-void AutoDriving::DrawLine(Mat& image, const vector<Rect>& rectangles, const vector<Point2f>& centroids)
-{
-    for (const auto& rect : rectangles)
+        for (int i = 0; i < numRect; i++)
+        {
+            int y1 = i * rectHeight;
+            int y2 = (i + 1) * rectHeight;
+            
+            Rect rect(0, y1, x/2, y2 - y1);
+            rectangles.push_back(rect);
+        }
+    }
+    else if (divide_flag == 1)
     {
-        rectangle(image, rect, Scalar(255, 0, 0), 3);
+        for (int i = 0; i < numRect; i++)
+        {
+            int y1 = i * rectHeight;
+            int y2 = (i + 1) * rectHeight;
+
+            Rect rect(x / 2, y1, x / 2, y2 - y1);
+            rectangles.push_back(rect);
+        }
     }
 
-    for (size_t i = 0; i < centroids.size() - 1; i++)
-    {
-        line(image, centroids[i], centroids[i + 1], Scalar(255, 0, 0), 7);
-    }
+    return rectangles;
 }
-
-vector<Point2f> AutoDriving::findCentroids(const Mat& roi, const vector<Rect>& rectangles)
+// 4-2-2. 차선으로 이어줄 점들의 좌표 구하기
+vector<Point2f> Car::findCentroids(const Mat& roi, const vector<Rect>& rectangles)
 {
     vector<Point2f> centroids;
 
@@ -209,36 +223,63 @@ vector<Point2f> AutoDriving::findCentroids(const Mat& roi, const vector<Rect>& r
             }
         }
     }
+	
     return centroids;
 }
-
-vector<Rect> AutoDriving::DivideRoi(Mat src, int x, int divide_flag)
+// 4-2-3. 검출된 차선을 기준으로 도로 영역 그리기
+void Car::DrawLine(Mat& image, const vector<Rect>& rectangles, const vector<Point2f>& centroids)
 {
-    vector<Rect> rectangles;
-    int numRect = 10;
-    int rectHeight = src.rows / numRect;
-    if (divide_flag == 0)
+    for (const auto& rect : rectangles)
     {
-        for (int i = 0; i < numRect; i++)
-        {
-            int y1 = i * rectHeight;
-            int y2 = (i + 1) * rectHeight;
-            
-            Rect rect(0, y1, x/2, y2 - y1);
-            rectangles.push_back(rect);
-        }
-    }
-    else if (divide_flag == 1)
-    {
-        for (int i = 0; i < numRect; i++)
-        {
-            int y1 = i * rectHeight;
-            int y2 = (i + 1) * rectHeight;
-
-            Rect rect(x / 2, y1, x / 2, y2 - y1);
-            rectangles.push_back(rect);
-        }
+        rectangle(image, rect, Scalar(255, 0, 0), 3);
     }
 
-    return rectangles;
+    for (size_t i = 0; i < centroids.size() - 1; i++)
+    {
+        line(image, centroids[i], centroids[i + 1], Scalar(255, 0, 0), 7);
+    }
+}
+
+// 4-3. 차선 검출 (PUBLIC)
+double Car::LaneDetection(Mat& src, Mat& dst)
+{
+    vector<Rect> rectangles_left = DivideRoi(src, src.cols,0);
+    vector<Point2f> centroids_left = findCentroids(src, rectangles_left);
+	double average_left = GetAverage(centroids_left);
+	
+    vector<Rect> rectangles_right = DivideRoi(src, src.cols,1);
+    vector<Point2f> centroids_right = findCentroids(src, rectangles_right);
+	double average_right = GetAverage(centroids_right);
+	double amount = CalcDirection(average_left, average_right);
+	
+    DrawLine(src, rectangles_left, centroids_left);
+    DrawLine(src, rectangles_right, centroids_right);
+
+    Mat img_fill = Mat::zeros(src.size(), CV_8UC3);
+    Point img_fill_point[4]
+    {
+       Point(centroids_left.back()),
+       Point(centroids_left.front()),
+       Point(centroids_right.front()),
+       Point(centroids_right.back())
+    };
+
+    fillConvexPoly(img_fill, img_fill_point, 4, Scalar(255, 0, 0));
+    dst = img_fill;
+	
+	return amount;
+}
+
+
+/*** 5. 결과 데이터 출력 : 결과 데이터(자동주행 여부 및 주행 방향)를 화면에 출력 ***/
+// 5-1. 결과 데이터 출력 (PUBLIC)
+void Car::PutText(Mat& draw, const bool isSleep, const double amount)
+{
+    String driving_mode = isSleep ? "Auto" : "Manual";
+    String direction;
+    if (amount < -5)	direction = "Left";
+    else if (amount < 5)	direction = "Straight";
+    else	direction = "Right";
+    putText(draw, driving_mode, Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
+    putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
 }
