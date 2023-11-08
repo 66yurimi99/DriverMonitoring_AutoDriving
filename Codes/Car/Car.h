@@ -50,4 +50,12 @@ public:
 	/*** 5. 결과 데이터 출력 : 결과 데이터(자동주행 여부 및 주행 방향)를 화면에 출력 ***/
 	void PutText(Mat& draw, const bool isSleep, const double amount);
 
+	vector<string> loadYolo(dnn::Net net);
+
+	void getObject(Mat Src, Mat& dst, Point2f* srcPts, dnn::Net net, vector<string> classes, double conf_value);
+	
+	void drawObject(Mat Src, Mat& dst, Point2f* srcPts, vector<float> confidences, vector<Rect> boxes, vector<Point2f> lines
+		, Rect check_box, int final_value, double conf_value);
+	
+	void judgeObject(Mat Src, Mat& dst, Point2f* srcPts, Rect check_box, int final_value);
 };

@@ -283,3 +283,146 @@ void Car::PutText(Mat& draw, const bool isSleep, const double amount)
     putText(draw, driving_mode, Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
     putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
 }
+
+/*** 6. 도로 내 차량 검출 ***/
+//6-1. 차량 검출을 위한 model name load
+vector<string> Car::loadYolo(dnn::Net net) {
+    vector<string> classes;
+    //+GPU
+    net.setPreferableBackend(dnn::DNN_BACKEND_CUDA);
+    net.setPreferableTarget(dnn::DNN_TARGET_CUDA);
+
+    // Load class names
+    ifstream ifs("coco.names");
+    if (!ifs.is_open())
+    {
+        cout << "Error: coco.names not opened." << endl;
+    }
+
+    //line 내 coco.names 파일 내용 넣기
+    string line;
+    while (getline(ifs, line))
+    {
+        classes.push_back(line);
+    }
+    return classes;
+}
+//6-2 Frame 내 차량 관련 객체 검출
+void Car::getObject(Mat Src, Mat& dst, Point2f* srcPts, dnn::Net net, vector<string> classes, double conf_value)
+{
+    Mat blob;
+    dst = Src.clone();
+    // Detect objects
+
+    dnn::blobFromImage(Src, blob, 1 / 255.0, Size(416, 416), Scalar(0, 0, 0), true, false);
+    net.setInput(blob);
+    vector<float> confidences;
+    Rect check_box;
+    vector<Rect> boxes;
+    vector<Point2f> lines;
+    vector<Mat> outs;
+    net.forward(outs, net.getUnconnectedOutLayersNames()); //yolo 결과 outs에 저장
+    // Process detection results
+    for (int i = 0; i < outs.size(); ++i)
+    {
+        float* data = (float*)outs[i].data;
+        for (int j = 0; j < outs[i].rows; ++j, data += outs[i].cols)
+        {
+            Mat scores = outs[i].row(j).colRange(5, outs[i].cols);
+            Point class_id_point;
+            double confidence;
+            minMaxLoc(scores, nullptr, &confidence, nullptr, &class_id_point);
+
+            if (confidence > conf_value)
+            {
+                int center_x = (int)(data[0] * Src.cols);
+                int center_y = (int)(data[1] * Src.rows);
+                int width = (int)(data[2] * Src.cols);
+                int height = (int)(data[3] * Src.rows);
+                int left = center_x - width / 2;
+                int top = center_y - height / 2;
+
+                if (classes[class_id_point.x] == "car" || classes[class_id_point.x] == "bus" || classes[class_id_point.x] == "truck")
+                {
+                    //class_ids.push_back(class_id_point.x);
+                    confidences.push_back((float)confidence);
+                    // Only draw bounding box and label for 'car' class
+                    boxes.push_back(Rect(left, top, width, height));
+                    lines.push_back(Point(center_x, center_y));
+                }
+            }
+        }
+    }
+    drawObject(Src, dst, srcPts, confidences, boxes, lines, check_box, Src.cols, conf_value);
+}
+//6-3 객체 표시 및 거리 판단이 필요한 객체 확인
+void Car::drawObject(Mat Src, Mat& dst, Point2f* srcPts, vector<float> confidences, vector<Rect> boxes,
+    vector<Point2f> lines, Rect check_box, int final_value, double conf_value)
+{
+    float m1 = (srcPts[3].y - srcPts[0].y) / (srcPts[3].x - srcPts[0].x);
+    float m2 = (srcPts[2].y - srcPts[1].y) / (srcPts[2].x - srcPts[1].x);
+    float meet_point_x = ((m1 * srcPts[0].x) - (m2 * srcPts[1].x) + srcPts[1].y - srcPts[0].y) / (m1 - m2);
+    int min_point_y = (int)(m1 * (meet_point_x - srcPts[0].x) + srcPts[0].y);
+    vector<int> indices;
+    // Apply non-maximum suppression -> 중복 박스 중 최적의 박스만 검출
+    dnn::NMSBoxes(boxes, confidences, conf_value, conf_value, indices);
+    final_value;
+    // Draw bounding boxes around detected objects
+    for (int i = 0; i < indices.size(); i++)
+    {
+        int idx = indices[i];
+        Rect box = boxes[idx];
+        Point line = lines[idx];
+        String label_accuracy = cv::format("%.2f", confidences[idx]);
+        rectangle(dst, box, Scalar(0, 0, 255), 2);
+        putText(dst, label_accuracy, Point(box.x, box.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255), 2);
+        //yolo 객체 탐지
+        if (line.y > min_point_y)
+        {
+            int check_x1 = ((float)line.y - srcPts[0].y + (m1 * srcPts[0].x)) / m1;
+            int check_x2 = ((float)line.y - srcPts[1].y + (m2 * srcPts[1].x)) / m2;
+            if (line.x > check_x1 && line.x < check_x2)
+            {
+                int com_value = abs((Src.cols) / 2 - line.x);
+                if (com_value < final_value)
+                {
+                    check_box = box;
+                    final_value = com_value;
+                }
+            }
+        }
+    }
+    judgeObject(Src, dst, srcPts, check_box, final_value);
+}
+//6-4 거리 판단 필요한 객체에 대하여 safe, dangerous 판단
+void Car::judgeObject(Mat Src, Mat& dst, Point2f* srcPts, Rect check_box, int final_value) {
+    if (final_value != Src.cols)
+    {
+        Point points_dis[4]{
+            Point(check_box.x, check_box.y + check_box.height),
+            Point(check_box.x + check_box.width , check_box.y + check_box.height),
+            Point(srcPts[1].x,srcPts[1].y),
+            Point(srcPts[0].x,srcPts[0].y),
+        };
+
+        fillConvexPoly(dst, points_dis, 4, Scalar(0, 255, 0));
+
+        string judge;
+        int red, green, blue = 0;
+        if ((check_box.y + check_box.height) > srcPts[0].y)
+        {
+            judge = "Collision Detection";
+            red = 255;
+            green = 0;
+            blue = 0;
+        }
+        else
+        {
+            judge = "Safe";
+            red = 0;
+            green = 0;
+            blue = 255;
+        }
+        putText(dst, judge, Point(0, dst.rows / 2 * 0.7), 1, 4, Scalar(blue, green, red), 5);
+    }
+}

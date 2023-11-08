@@ -14,7 +14,16 @@ int main(int argc, char* argv[])
         cout << "video is not opened" << endl;
         return -1;         // ERROR : 동영상 파일 열기 실패
     }
+
+    dnn::Net net = dnn::readNet("yolov7.weights", "yolov7.cfg");
+    if (net.empty()) {
+        cout << "Yolo model is not opened" << endl;
+        return -1;
+    }
+
     Mat img_frame;
+    vector<string> classes;
+    classes = _car->loadYolo(net);
     video.read(img_frame);
 
     int width = img_frame.cols;
@@ -36,6 +45,9 @@ int main(int argc, char* argv[])
     namedWindow(window_capture_name4);
     while (video.read(img_frame))
     {
+        Mat img_object;
+        // Detect
+        _car->getObject(img_frame, img_object, srcPts, net, classes, 0.5);
         // Perspective Transform (3D -> 2D : top view)
         Mat img_top;
         _car->TransPersfective(img_frame, img_top, srcPts, dstPts, width, height);
@@ -52,7 +64,7 @@ int main(int argc, char* argv[])
         Mat img_roi;
         _car->TransPersfective(img_top, img_roi, dstPts, srcPts, width, height);
         Mat img_result;
-        addWeighted(img_frame, 1, img_roi, 1, 0, img_result);
+        addWeighted(img_object, 1, img_roi, 1, 0, img_result);
 
         // Put Text
         bool flag = true;
