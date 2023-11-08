@@ -95,47 +95,65 @@ void ISP::calculateFPS(Mat& frame, int& frameCount, chrono::time_point<chrono::h
     frameCount++;
 }
 
-void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep, clock_t& start, clock_t& end) //EAR값 검출 및 졸음 여부 판단
+void ISP::detectEyesAndSleep(Mat& frame, dlib::frontal_face_detector detector, dlib::shape_predictor landmark_predictor, bool& sleep,clock_t& start, clock_t& end) //EAR값 검출 및 졸음 여부 판단
 {
     std::vector<dlib::rectangle> faces;
     dlib::cv_image<dlib::bgr_pixel> dlibFrame(frame);
 
     faces = detector(dlibFrame);
 
-    for (const auto& face : faces) {
-        dlib::draw_rectangle(dlibFrame, face, dlib::rgb_pixel(255, 0, 0));
-        dlib::full_object_detection landmarks = landmark_predictor(dlibFrame, face);
-
-        double leftEAR = eyeAspectRatio(landmarks, 36, 37, 38, 39, 40, 41);
-        double rightEAR = eyeAspectRatio(landmarks, 42, 43, 44, 45, 46, 47);
-
-        // 눈 랜드마크 그림
-        for (int i = 36; i < 48; i++) {
-            cv::Point point(landmarks.part(i).x(), landmarks.part(i).y());
-            cv::circle(frame, point, 2, Scalar(0, 0, 255), -1);
-        }
-        double ear = (leftEAR + rightEAR) / 2.0; //눈 수직:수평 비율
-
-        if (ear <= eyeAspectRatioThreshold) {
-            if (start == 0) {
-                start = clock();
+    //When cannot find driver
+    if (faces.empty()) {
+        if (start == 0) start = clock();
+        else {
+            end = clock();
+            double notfound = double(end - start) / CLOCKS_PER_SEC;
+            string text = "Not Found: " + to_string(notfound);
+            putText(frame, text, Point(50, 430), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+            if (notfound >= notfound_threshold) {
+                sleep = true;
             }
-            else {
-                end = clock();
-                double sleeptime = (double)(end - start) / CLOCKS_PER_SEC;
-                string text = "Closed: " + to_string(sleeptime);
-                putText(frame, text, Point(50, 430), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+        }
+        if (sleep == true) putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2);
+    }
 
-                if (sleeptime >= sleeptime_threshold) {
-                    sleep = true;
+    else {
+        sleep = false;
+        for (const auto& face : faces) {
+            dlib::draw_rectangle(dlibFrame, face, dlib::rgb_pixel(255, 0, 0));
+            dlib::full_object_detection landmarks = landmark_predictor(dlibFrame, face);
+
+            double leftEAR = eyeAspectRatio(landmarks, 36, 37, 38, 39, 40, 41);
+            double rightEAR = eyeAspectRatio(landmarks, 42, 43, 44, 45, 46, 47);
+
+            // 눈 랜드마크 그림
+            for (int i = 36; i < 48; i++) {
+                cv::Point point(landmarks.part(i).x(), landmarks.part(i).y());
+                cv::circle(frame, point, 2, Scalar(0, 0, 255), -1);
+            }
+            double ear = (leftEAR + rightEAR) / 2.0; //눈 수직:수평 비율
+
+            if (ear <= eyeAspectRatioThreshold) {
+                if (start == 0) {
+                    start = clock();
+                }
+                else {
+                    end = clock();
+                    double sleeptime = (double)(end - start) / CLOCKS_PER_SEC;
+                    string text = "Closed: " + to_string(sleeptime);
+                    putText(frame, text, Point(50, 430), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+
+                    if (sleeptime >= sleeptime_threshold) {
+                        sleep = true;
+                    }
                 }
             }
+            else {
+                start = 0;
+            }
+            if (sleep == true) putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2); // 수면 시
+            else putText(frame, "Good", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2); // 정상상태 시
         }
-        else {
-            start = 0;
-        }
-        if (sleep == true) putText(frame, "Sleep", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 255), 2); // 수면 시
-        else putText(frame, "Good", Point(10, 60), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2); // 정상상태 시
     }
 }
 
@@ -147,4 +165,78 @@ int ISP::videotoframe(Mat& frame, VideoCapture& cap) // 영상 -> 이미지
         return 0;
     }
     return 1;
+}
+
+void ISP::preprocessing(Mat& frame, Mat& dst, Mat& dst_hsv) {
+    dst = frame.clone();
+    //cvtColor(frame, dst, COLOR_BGR2GRAY);
+    cvtColor(frame, dst, COLOR_BGR2HSV);
+    const int H_Low = 0, S_Low = 0, V_Low = 0;
+    const int H_High = 40, S_High = 60, V_High = 160;
+    inRange(dst, (H_Low, S_Low, V_Low), (H_High, S_High, V_High), dst_hsv);
+}
+
+void ISP::gammatransform(Mat& frame, Mat& gamma_t, float gamma_var) {
+    const int a = 1;
+    for (size_t i = 0; i < frame.rows; i++) {
+        for (size_t j = 0; j < frame.cols; j++) {
+            //float pixel_value = frame.at<uchar>(i, j);
+            for (size_t c = 0; c < frame.channels(); c++) {
+                int idx = ((i * frame.cols) + j) * frame.channels() + c;
+                float val = pow(((float)frame.data[idx] / 255.), gamma_var) * 255;
+                gamma_t.data[idx] = (uchar)val;
+            }
+        }
+    }
+}
+
+void ISP::logtransform(Mat& frame, Mat& log_t, int log_var) {
+    for (size_t i = 0; i < frame.rows; i++) {
+        for (size_t j = 0; j < frame.cols; j++) {
+            for (size_t c = 0; c < frame.channels(); c++) {
+                int idx = ((i * frame.cols) + j) * frame.channels() + c;
+                float val = log_var * log(1.+(float)frame.data[idx])*(255./log(256));
+                log_t.data[idx] = (uchar)val;
+            }
+        }
+    }
+}
+
+void ISP::initalizeWininet(HINTERNET& hInternet, HINTERNET& hConnect) {
+    hInternet = InternetOpen(L"HTTP Example", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+    wstring url(L"http://54.175.8.12/flag.php");
+    wstring query(L"?sleep=0");
+    hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+    if (!hInternet) {
+        std::cerr << "InternetOpen failed." << std::endl;
+        exit(1);
+    }
+}
+
+void ISP::request_Wininet_Get(HINTERNET& hInternet, HINTERNET& hConnect, bool sleep, bool& pre_sleep) {
+    if (sleep && !pre_sleep) {
+        //wstring url = DB_URL;
+        //wstring query = SLEEP;
+        wstring url(L"http://54.175.8.12/flag.php");
+        wstring query(L"?sleep=1");
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    else if (!sleep && pre_sleep) {
+        //wstring url = DB_URL;
+        //wstring query = GOOD;
+        wstring url(L"http://54.175.8.12/flag.php");
+        wstring query(L"?sleep=0");
+        hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        if (!hConnect) {
+            std::cerr << "InternetOpenUrl failed." << std::endl;
+            InternetCloseHandle(hInternet);
+            exit(1);
+        }
+    }
+    pre_sleep = sleep;
 }
