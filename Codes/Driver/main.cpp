@@ -10,9 +10,8 @@ dlib::frontal_face_detector detector;
 dlib::shape_predictor landmark_predictor;
 int frameCount = 1;
 int camera_num = 0; //내장 및 첫번째 카메라
-
 int gammaframe = 1;
-
+HINTERNET hInternet, hConnect; //인터넷 세션, 리소스 핸들
 
 int main() {
     _isp = new ISP();
@@ -40,19 +39,11 @@ int main() {
         gamma_t = frame.clone();
         log_t = frame.clone();
         _isp->gammatransform(frame, gamma_t, gamma_var);
-       // _isp->logtransform(frame, log_t, log_var);
         _isp->detectEyesAndSleep(gamma_t, detector, landmark_predictor, sleep, start, end);
         _isp->calculateFPS(gamma_t, gammaframe, start_fps);
-        //_isp->detectEyesAndSleep(log_t, detector, landmark_predictor, sleep, start, end);
-        /*_isp->calculateFPS(log_t, gammaframe, start_fps);
-        _isp->detectEyesAndSleep(frame, detector, landmark_predictor, sleep, start, end);
-        _isp->calculateFPS(frame, frameCount, start_fps);
-        */
         _isp->request_Wininet_Get(hInternet, hConnect, sleep, pre_sleep);
-
-        //cv::imshow(windowName, frame);
+        
         cv::imshow("gamma trans", gamma_t);
-        //cv::imshow("log trans", log_t);
         if (waitKey(1) == 27) {
             break;
         }

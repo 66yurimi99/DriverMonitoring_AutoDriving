@@ -204,6 +204,9 @@ void ISP::logtransform(Mat& frame, Mat& log_t, int log_var) {
 
 void ISP::initalizeWininet(HINTERNET& hInternet, HINTERNET& hConnect) {
     hInternet = InternetOpen(L"HTTP Example", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+    wstring url(L"http://54.175.8.12/flag.php");
+    wstring query(L"?sleep=0");
+    hConnect = InternetOpenUrl(hInternet, (url + query).c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
     if (!hInternet) {
         std::cerr << "InternetOpen failed." << std::endl;
         exit(1);
