@@ -20,7 +20,6 @@ void Car::OnMouse(int event, int x, int y, int flags, void* userdata)
     Point2f* srcPts = userData->pts;
     Mat img_roi = userData->img;
 
-
     if (event == EVENT_LBUTTONDOWN)
     {
         if (cnt < 4)
@@ -276,17 +275,22 @@ double Car::LaneDetection(Mat& src, Mat& dst)
 void Car::PutText(Mat& draw, const bool isSleep, const double amount)
 {
     String driving_mode = isSleep ? "Auto" : "Manual";
-    String direction;
-    if (amount < -5)	direction = "Left";
-    else if (amount < 5)	direction = "Straight";
-    else	direction = "Right";
     putText(draw, driving_mode, Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
-    putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
+
+    if (isSleep)
+    {   // 자율 주행 모드 : 주행 방향 출력
+        String direction;
+        if (amount < -5)	direction = "Left";
+        else if (amount < 5)	direction = "Straight";
+        else	direction = "Right";
+        putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
+    }
 }
 
 /*** 6. 도로 내 차량 검출 ***/
-//6-1. 차량 검출을 위한 model name load
-vector<string> Car::loadYolo(dnn::Net net) {
+// 6-1. 차량 검출을 위한 model name load
+vector<string> Car::loadYolo(dnn::Net net)
+{
     vector<string> classes;
     //+GPU
     net.setPreferableBackend(dnn::DNN_BACKEND_CUDA);
@@ -307,7 +311,8 @@ vector<string> Car::loadYolo(dnn::Net net) {
     }
     return classes;
 }
-//6-2 Frame 내 차량 관련 객체 검출
+
+// 6-2. Frame 내 차량 관련 객체 검출
 void Car::getObject(Mat& Src, Point2f* srcPts, dnn::Net net, vector<string> classes,
     double conf_value, vector<float>& confidences, vector<Rect>& boxes, vector<Point2f>& lines)
 {
@@ -352,7 +357,8 @@ void Car::getObject(Mat& Src, Point2f* srcPts, dnn::Net net, vector<string> clas
         }
     }
 }
-//6-3 객체 표시 및 거리 판단이 필요한 객체 확인
+
+// 6-3. 객체 표시 및 거리 판단이 필요한 객체 확인
 void Car::drawObject(Mat Src, Mat Src2, Mat& dst, Point2f* srcPts, vector<float>& confidences, vector<Rect>& boxes,
     vector<Point2f>& lines, int final_value, double conf_value)
 {
@@ -395,8 +401,10 @@ void Car::drawObject(Mat Src, Mat Src2, Mat& dst, Point2f* srcPts, vector<float>
     judgeObject(Src, dst, srcPts, check_box, final_value);
     LaneChangeStatus(Src2, dst, srcPts, detect_boxes);
 }
-//6-4 거리 판단 필요한 객체(차량)에 대하여 safe, dangerous 판단
-void Car::judgeObject(Mat& Src, Mat& dst, Point2f* srcPts, Rect check_box, int final_value) {
+
+// 6-4. 거리 판단 필요한 객체(차량)에 대하여 safe, dangerous 판단
+void Car::judgeObject(Mat& Src, Mat& dst, Point2f* srcPts, Rect check_box, int final_value)
+{
     if (final_value != Src.cols)
     {
         Point points_dis[4]{
@@ -428,8 +436,10 @@ void Car::judgeObject(Mat& Src, Mat& dst, Point2f* srcPts, Rect check_box, int f
         putText(dst, judge, Point(20, 180), 1, 4, Scalar(blue, green, red), 5);
     }
 }
-//6-5 차선 변경 여부 판단을 위한 차선 판단(실선, 점선) 및 해당 차선 진행 차량 여부 판단
-void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& boxes) {
+
+// 6-5. 차선 변경 여부 판단을 위한 차선 판단(실선, 점선) 및 해당 차선 진행 차량 여부 판단
+void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& boxes)
+{
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     findContours(Src, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);//객체의 외곽선을 검출하는 함수
@@ -437,7 +447,7 @@ void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& bo
     int right_height = 0;
     for (size_t i = 0; i < contours.size(); i++)
     {
-        Rect rt = boundingRect(contours[i]); 
+        Rect rt = boundingRect(contours[i]);
         if (rt.x < Src.cols / 2)
         {
             left_height += rt.height;
@@ -460,7 +470,7 @@ void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& bo
     {
         for (const Rect& box : boxes)
         {
-            if (box.y + box.height > srcPts[0].y)
+            if (box.y + box.height > srcPts[0].y && (box.x + box.width) < dst.cols / 2)
             {
                 left_move = "X";
                 break;
@@ -481,7 +491,7 @@ void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& bo
     {
         for (const Rect& box : boxes)
         {
-            if (box.y + box.height > srcPts[0].y)
+            if (box.y + box.height > srcPts[0].y && (box.x + box.width) > dst.cols / 2)
             {
                 right_move = "X";
                 break;
