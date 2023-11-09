@@ -9,16 +9,11 @@
 #include <chrono>
 #include <math.h>
 #define _USE_MATH_DEFINES
-
-/* Car - Lane Detection */
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
-
-/* Car - Car Detection */
-
 
 /* Driver - dlib */
 #include <dlib/image_processing.h>
@@ -28,9 +23,9 @@
 
 
 #ifdef _DEBUG
-#pragma comment(lib, "opencv_world470d.lib")
+#pragma comment(lib, "opencv_world480d.lib")
 #else
-#pragma comment(lib, "opencv_world470.lib")
+#pragma comment(lib, "opencv_world480.lib")
 #endif
 
 using namespace std;

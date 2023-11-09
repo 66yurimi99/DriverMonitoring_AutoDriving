@@ -20,7 +20,6 @@ void Car::OnMouse(int event, int x, int y, int flags, void* userdata)
     Point2f* srcPts = userData->pts;
     Mat img_roi = userData->img;
 
-
     if (event == EVENT_LBUTTONDOWN)
     {
         if (cnt < 4)
@@ -136,24 +135,24 @@ void Car::PreprocessFrame(Mat src, Mat& dst)
 // 4-1-1. x 좌표 평균 구하기
 double Car::GetAverage(vector<Point2f> centroids)
 {
-	float sum_x = 0.0;
-	for (const Point2f& point : centroids) {
-		sum_x += point.x;
-	}
+    float sum_x = 0.0;
+    for (const Point2f& point : centroids) {
+        sum_x += point.x;
+    }
 
-	float average_x = sum_x / centroids.size();
+    float average_x = sum_x / centroids.size();
 
-	return average_x;
+    return average_x;
 }
 // 4-1-2. 방향 계산
 double Car::CalcDirection(double left, double right)
 {
-	double diff = (prev_average_left - left) + (prev_average_right - right);
+    double diff = (prev_average_left - left) + (prev_average_right - right);
 
-	prev_average_left = left;
-	prev_average_right = right;
+    prev_average_left = left;
+    prev_average_right = right;
 
-	return diff;
+    return diff;
 }
 
 // 4-2. 차선 검출
@@ -169,8 +168,8 @@ vector<Rect> Car::DivideRoi(Mat src, int x, int divide_flag)
         {
             int y1 = i * rectHeight;
             int y2 = (i + 1) * rectHeight;
-            
-            Rect rect(0, y1, x/2, y2 - y1);
+
+            Rect rect(0, y1, x / 2, y2 - y1);
             rectangles.push_back(rect);
         }
     }
@@ -223,7 +222,7 @@ vector<Point2f> Car::findCentroids(const Mat& roi, const vector<Rect>& rectangle
             }
         }
     }
-	
+
     return centroids;
 }
 // 4-2-3. 검출된 차선을 기준으로 도로 영역 그리기
@@ -243,15 +242,15 @@ void Car::DrawLine(Mat& image, const vector<Rect>& rectangles, const vector<Poin
 // 4-3. 차선 검출 (PUBLIC)
 double Car::LaneDetection(Mat& src, Mat& dst)
 {
-    vector<Rect> rectangles_left = DivideRoi(src, src.cols,0);
+    vector<Rect> rectangles_left = DivideRoi(src, src.cols, 0);
     vector<Point2f> centroids_left = findCentroids(src, rectangles_left);
-	double average_left = GetAverage(centroids_left);
-	
-    vector<Rect> rectangles_right = DivideRoi(src, src.cols,1);
+    double average_left = GetAverage(centroids_left);
+
+    vector<Rect> rectangles_right = DivideRoi(src, src.cols, 1);
     vector<Point2f> centroids_right = findCentroids(src, rectangles_right);
-	double average_right = GetAverage(centroids_right);
-	double amount = CalcDirection(average_left, average_right);
-	
+    double average_right = GetAverage(centroids_right);
+    double amount = CalcDirection(average_left, average_right);
+
     DrawLine(src, rectangles_left, centroids_left);
     DrawLine(src, rectangles_right, centroids_right);
 
@@ -266,8 +265,8 @@ double Car::LaneDetection(Mat& src, Mat& dst)
 
     fillConvexPoly(img_fill, img_fill_point, 4, Scalar(255, 0, 0));
     dst = img_fill;
-	
-	return amount;
+
+    return amount;
 }
 
 
@@ -276,10 +275,232 @@ double Car::LaneDetection(Mat& src, Mat& dst)
 void Car::PutText(Mat& draw, const bool isSleep, const double amount)
 {
     String driving_mode = isSleep ? "Auto" : "Manual";
-    String direction;
-    if (amount < -5)	direction = "Left";
-    else if (amount < 5)	direction = "Straight";
-    else	direction = "Right";
     putText(draw, driving_mode, Point(20, 60), 1, 4, Scalar(0, 255, 255), 5);
-    putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
+
+    if (isSleep)
+    {   // 자율 주행 모드 : 주행 방향 출력
+        String direction;
+        if (amount < -5)	direction = "Left";
+        else if (amount < 5)	direction = "Straight";
+        else	direction = "Right";
+        putText(draw, direction, Point(20, 120), 1, 4, Scalar(0, 255, 255), 5);
+    }
+}
+
+/*** 6. 도로 내 차량 검출 ***/
+// 6-1. 차량 검출을 위한 model name load
+vector<string> Car::loadYolo(dnn::Net net)
+{
+    vector<string> classes;
+    //+GPU
+    net.setPreferableBackend(dnn::DNN_BACKEND_CUDA);
+    net.setPreferableTarget(dnn::DNN_TARGET_CUDA);
+
+    // Load class names
+    ifstream ifs("coco.names");
+    if (!ifs.is_open())
+    {
+        cout << "Error: coco.names not opened." << endl;
+    }
+
+    //line 내 coco.names 파일 내용 넣기
+    string line;
+    while (getline(ifs, line))
+    {
+        classes.push_back(line);
+    }
+    return classes;
+}
+
+// 6-2. Frame 내 차량 관련 객체 검출
+void Car::getObject(Mat& Src, Point2f* srcPts, dnn::Net net, vector<string> classes,
+    double conf_value, vector<float>& confidences, vector<Rect>& boxes, vector<Point2f>& lines)
+{
+    Mat blob;
+    // Detect objects
+    confidences.clear();
+    boxes.clear();
+    lines.clear();
+    dnn::blobFromImage(Src, blob, 1 / 255.0, Size(416, 416), Scalar(0, 0, 0), true, false);
+    net.setInput(blob);
+    vector<Mat> outs;
+    net.forward(outs, net.getUnconnectedOutLayersNames()); //yolo 결과 outs에 저장
+    // Process detection results
+    for (int i = 0; i < outs.size(); ++i)
+    {
+        float* data = (float*)outs[i].data;
+        for (int j = 0; j < outs[i].rows; ++j, data += outs[i].cols)
+        {
+            Mat scores = outs[i].row(j).colRange(5, outs[i].cols);
+            Point class_id_point;
+            double confidence;
+            minMaxLoc(scores, nullptr, &confidence, nullptr, &class_id_point);
+
+            if (confidence > conf_value)
+            {
+                int center_x = (int)(data[0] * Src.cols);
+                int center_y = (int)(data[1] * Src.rows);
+                int width = (int)(data[2] * Src.cols);
+                int height = (int)(data[3] * Src.rows);
+                int left = center_x - width / 2;
+                int top = center_y - height / 2;
+
+                if (classes[class_id_point.x] == "car" || classes[class_id_point.x] == "bus" || classes[class_id_point.x] == "truck")
+                {
+                    //class_ids.push_back(class_id_point.x);
+                    confidences.push_back((float)confidence);
+                    // Only draw bounding box and label for 'car' class
+                    boxes.push_back(Rect(left, top, width, height));
+                    lines.push_back(Point(center_x, center_y));
+                }
+            }
+        }
+    }
+}
+
+// 6-3. 객체 표시 및 거리 판단이 필요한 객체 확인
+void Car::drawObject(Mat Src, Mat Src2, Mat& dst, Point2f* srcPts, vector<float>& confidences, vector<Rect>& boxes,
+    vector<Point2f>& lines, int final_value, double conf_value)
+{
+    float m1 = (srcPts[3].y - srcPts[0].y) / (srcPts[3].x - srcPts[0].x);
+    float m2 = (srcPts[2].y - srcPts[1].y) / (srcPts[2].x - srcPts[1].x);
+    float meet_point_x = ((m1 * srcPts[0].x) - (m2 * srcPts[1].x) + srcPts[1].y - srcPts[0].y) / (m1 - m2);
+    int min_point_y = (int)(m1 * (meet_point_x - srcPts[0].x) + srcPts[0].y);
+    dst = Src.clone();
+    vector<int> indices;
+    Rect check_box;
+    vector <Rect> detect_boxes;
+    // Apply non-maximum suppression -> 중복 박스 중 최적의 박스만 검출
+    dnn::NMSBoxes(boxes, confidences, conf_value, conf_value, indices);
+    // Draw bounding boxes around detected objects
+    for (int i = 0; i < indices.size(); i++)
+    {
+        int idx = indices[i];
+        Rect box = boxes[idx];
+        Point line = lines[idx];
+        detect_boxes.push_back(box);
+        String label_accuracy = cv::format("%.2f", confidences[idx]);
+        rectangle(dst, box, Scalar(0, 0, 255), 2);
+        putText(dst, label_accuracy, Point(box.x, box.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255), 2);
+        //yolo 객체 탐지
+        if (line.y > min_point_y)
+        {
+            int check_x1 = ((float)line.y - srcPts[0].y + (m1 * srcPts[0].x)) / m1;
+            int check_x2 = ((float)line.y - srcPts[1].y + (m2 * srcPts[1].x)) / m2;
+            if (line.x > check_x1 && line.x < check_x2)
+            {
+                int com_value = abs((Src.cols) / 2 - line.x);
+                if (com_value < final_value)
+                {
+                    check_box = box;
+                    final_value = com_value;
+                }
+            }
+        }
+    }
+    judgeObject(Src, dst, srcPts, check_box, final_value);
+    LaneChangeStatus(Src2, dst, srcPts, detect_boxes);
+}
+
+// 6-4. 거리 판단 필요한 객체(차량)에 대하여 safe, dangerous 판단
+void Car::judgeObject(Mat& Src, Mat& dst, Point2f* srcPts, Rect check_box, int final_value)
+{
+    if (final_value != Src.cols)
+    {
+        Point points_dis[4]{
+            Point(check_box.x, check_box.y + check_box.height),
+            Point(check_box.x + check_box.width , check_box.y + check_box.height),
+            Point(srcPts[1].x,srcPts[1].y),
+            Point(srcPts[0].x,srcPts[0].y),
+        };
+
+        fillConvexPoly(dst, points_dis, 4, Scalar(0, 235, 0));
+
+        string judge;
+        int red, green, blue = 0;
+        if ((check_box.y + check_box.height) > srcPts[0].y)
+        {
+            judge = "Collision Detection";
+            red = 255;
+            green = 0;
+            blue = 0;
+            
+        }
+        else
+        {
+            judge = "Safe";
+            red = 0;
+            green = 0;
+            blue = 255;
+        }
+        putText(dst, judge, Point(20, 180), 1, 4, Scalar(blue, green, red), 5);
+    }
+}
+
+// 6-5. 차선 변경 여부 판단을 위한 차선 판단(실선, 점선) 및 해당 차선 진행 차량 여부 판단
+void Car::LaneChangeStatus(Mat& Src, Mat& dst, Point2f* srcPts, vector<Rect>& boxes)
+{
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours(Src, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);//객체의 외곽선을 검출하는 함수
+    int left_height = 0;
+    int right_height = 0;
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        Rect rt = boundingRect(contours[i]);
+        if (rt.x < Src.cols / 2)
+        {
+            left_height += rt.height;
+        }
+        else
+        {
+            right_height += rt.height;
+        }
+        cv::rectangle(Src, rt, Scalar(255, 0, 0), 3);
+    }
+
+    String left_move = "O";
+    String right_move = "O";
+
+    if (left_height > (Src.rows * 0.8))
+    {
+        left_move = "X";
+    }
+    else
+    {
+        for (const Rect& box : boxes)
+        {
+            if (box.y + box.height > srcPts[0].y && (box.x + box.width) < dst.cols / 2)
+            {
+                left_move = "X";
+                break;
+            }
+            else
+            {
+                left_move = "O";
+            }
+        }
+    }
+    putText(dst, left_move, Point(dst.cols / 4, dst.rows * 0.8), FONT_HERSHEY_SIMPLEX, 3, Scalar(255, 225, 255), 2);
+
+    if (right_height > (Src.rows * 0.9))
+    {
+        right_move = "X";
+    }
+    else
+    {
+        for (const Rect& box : boxes)
+        {
+            if (box.y + box.height > srcPts[0].y && (box.x + box.width) > dst.cols / 2)
+            {
+                right_move = "X";
+                break;
+            }
+            else
+            {
+                right_move = "O";
+            }
+        }
+    }
+    putText(dst, right_move, Point(dst.cols * 0.75, dst.rows * 0.8), FONT_HERSHEY_SIMPLEX, 3, Scalar(255, 225, 255), 2);
 }
