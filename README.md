@@ -61,14 +61,15 @@
 ---
 * 운전자가 졸지 않을 때,
 
-  <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/5a601673-92bb-437a-9a09-0d47f5eb6c7f style="width: 320px; height: 240px;">
+   <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/5a601673-92bb-437a-9a09-0d47f5eb6c7f alt="2" style="width: 320px; height: 240px;"> | <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/843399f3-45a3-4c8b-b19c-732549024644 style="width: 320px; height: 240px;">
+  --- | --- |
 
-* 운전자가 잔다고 판단될 때, 자율 주행 
+* 운전자가 잔다고 판단될 때, 자율 주행(안전할 때) 
 
   <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/94097b46-328d-46e2-8ce3-e2314f86fc4d alt="2" style="width: 320px; height: 240px;"> | <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/58150f4e-bf16-45e7-a494-70757275f979 alt="1" style="width: 320px; height: 240px;">
   --- | --- |
 
-* 운전자가 잔다고 판단되고 사고 위험이 있을 때,
+* 운전자가 잔다고 판단될 떄, 자율 주행(위험할 때)
 
   <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/94097b46-328d-46e2-8ce3-e2314f86fc4d alt="2" style="width: 320px; height: 240px;"> | <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/fe9122d4-7e4d-4973-bd30-6b4599528073 alt="1" style="width: 320px; height: 240px;">
   --- | --- |
