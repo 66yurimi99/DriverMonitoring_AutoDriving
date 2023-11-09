@@ -23,9 +23,9 @@
 
 
 #ifdef _DEBUG
-#pragma comment(lib, "opencv_world470d.lib")
+#pragma comment(lib, "opencv_world480d.lib")
 #else
-#pragma comment(lib, "opencv_world470.lib")
+#pragma comment(lib, "opencv_world480.lib")
 #endif
 
 using namespace std;
