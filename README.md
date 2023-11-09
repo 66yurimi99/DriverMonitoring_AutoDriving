@@ -16,7 +16,6 @@
 
 프로젝트 배경
 ---
-
 <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/978d3f75-9765-4157-84fa-57123db496e2 alt="2" style="width: 320px; height: 240px;"> | <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/f380734e-a15b-4204-8f39-48387e142ac3 alt="1" style="width: 320px; height: 240px;">
 --- | --- |
 
@@ -32,7 +31,9 @@
 구성도
 ---
 * 시스템 구성도
-  
+
+  <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/2ec63ab5-bbdb-4235-9717-91346f3608ad style="width: 840px; height: 480px;">
+
   <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/50bf5c79-a821-4c8a-b02e-2f65cd83c449 alt="2" style="width: 840px; height: 360px;">
   
 * SW 구성도
