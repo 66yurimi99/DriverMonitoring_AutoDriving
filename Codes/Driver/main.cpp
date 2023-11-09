@@ -15,7 +15,7 @@ int gammaframe = 1;
 
 int main() {
     _isp = new ISP();
-    _server = new Server(L"http://54.175.8.12/flag.php");
+    Server _server(L"http://54.175.8.12/flag.php");
     _isp->initializeCamera(camera_num, cap);
     _isp->initializeDlib(detector, landmark_predictor);
     Mat frame;
@@ -35,7 +35,7 @@ int main() {
     
     auto start_fps = chrono::high_resolution_clock::now();
 
-    _server->sendGETRequest(L"?sleep=0", response);
+    _server.sendGETRequest(L"?sleep=0", response);
     
     while (true) {
         if (!_isp->videotoframe(frame, cap)) break;
@@ -49,7 +49,7 @@ int main() {
         {
            wstring query = L"?sleep=";
            wstring value = sleep ? L"1" : L"0";
-           _server->sendGETRequest(query+value, response);
+           _server.sendGETRequest(query+value, response);
            pre_sleep = sleep;
         }
         
@@ -61,7 +61,6 @@ int main() {
     
     destroyAllWindows();
     delete _isp;
-    delete _server;
 
     return 0;
 }
