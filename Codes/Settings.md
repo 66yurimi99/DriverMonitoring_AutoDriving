@@ -7,9 +7,7 @@
     -  Language: C++
     -  OS: Windows
     -  opencv
-*   Car Detection Part
-    -
-    -
+    -  Dlib
 ## Installation
 ### Opencv
 <img src="https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/141535958/132d8fb1-f6c2-409f-b38d-1fa6e02f2984" width="640" height="480"/>
@@ -115,6 +113,7 @@
 *  Release / x64로 변경
 <br/>
 <img src="https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/141535958/8bc2fa6f-e5a5-40e2-9870-e9f571c01d1c" width="480" height="360"/>
+<br/>
 <img src="https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/141535958/cdeda01f-f441-49ff-a268-8e16157420a2" width="480" height="80"/>
 
 
