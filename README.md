@@ -35,10 +35,13 @@
   
   <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/50bf5c79-a821-4c8a-b02e-2f65cd83c449 alt="2" style="width: 840px; height: 360px;">
   
-* SW 구성도
+* SW 아키텍처
+  - Driver to SERVER
+  <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/05e7d073-5d63-458e-81c2-d51f46c07c13 style="width: 840px; height: 360px;">
   
-  <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/71be7783-a3a0-4c25-924c-6055c4750b65 alt="1" style="width: 840px; height: 480px;">
-
+  - Car to SERVER
+  <img src=https://github.com/66yurimi99/DriverMonitoring_AutoDriving/assets/86766617/e27a699b-c8bd-496f-a7d7-c8dd7d2dc7e7 style="width: 840px; height: 360px;">
+    
 프로젝트 기능
 ---
 - 실시간 얼굴 및 눈 인식 : Gamma Transformation을 적용한 전처리와 Dlib의 학습모델인 get_frontal_face_detector()를 활용하여 실시간으로 사람 얼굴을 인식 후, 눈을 인식함
